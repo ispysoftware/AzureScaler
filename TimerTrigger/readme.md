@@ -18,7 +18,7 @@ Create a local.settings.json file containing the following
         "FUNCTIONS_WORKER_RUNTIME": "powershell",
         "ServicePrincipalClientId": "", //See: https://docs.microsoft.com/en-us/azure/active-directory/develop/howto-create-service-principal-portal
         "ServicePrincipalTenantId": "",
-        "ServicePrincipalKey": "",// This is the application ID you created for the service principal
+        "ServicePrincipalKey": "",// This is the application secret you created for the service principal (under Client Secrets)
         "SubscriptionID":"", //Your Azure subscription ID
         "CosmosThroughputBuffer":200,    //How much to add to the detected usage level
         "SignalRScaleLimit": 0.9, //So if scale is 1000 and usage is 901 it will scale to 2000
