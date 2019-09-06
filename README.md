@@ -22,6 +22,8 @@ Create a local.settings.json file containing the following
         "ServicePrincipalKey": "",
         "SubscriptionID":"",
         "CosmosThroughputBuffer":200,
+        "CosmosMin":400,
+        "CosmosMax":10000,
         "SignalRScaleLimit": 0.9, 
         "ScaleEnabled": 1,
         "CosmosAPIVersion": "2015-04-08",

@@ -155,8 +155,11 @@ function CheckCosmosUsage
             Write-Host "Max Usage: " $max
             $buffer = $CosmosThroughputBuffer
             $newmax = [math]::Ceiling(($max+$buffer)/100)*100
-            if ($newmax -lt 400) {
-                $newmax = 400
+            if ($newmax -lt [int]$env:CosmosMin) {
+                $newmax = [int]$env:CosmosMin
+            }
+            if ($newmax -gt [int]$env:CosmosMax) {
+                $newmax = [int]$env:CosmosMax
             }
             Write-Host "New Max: " $newmax
 
