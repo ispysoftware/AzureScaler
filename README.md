@@ -1,5 +1,5 @@
 # AzureScaler
-Azure function to detect and auto scale cosmos DB and signalr servers according to load.
+Azure function to detect and auto scale cosmos DB and signalr servers according to load on an Azure subscription
 
 Create a local.settings.json file containing the following
 
