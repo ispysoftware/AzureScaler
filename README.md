@@ -1,5 +1,5 @@
 # AzureScaler
-Azure function to detect and auto scale cosmos DB and signalr servers according to load on an Azure subscription. The cosmos DB scaler will adjust the max throughput of a database based on the maximum RU seen over the past 5 minutes.
+Azure function to detect and auto scale cosmos DB and signalr servers according to load on an Azure subscription. The cosmos DB scaler will adjust the max throughput of a database based on the maximum RU seen over the past 5 minutes and the number of clients connected to signalr.
 
 
 Create a local.settings.json file containing the following
