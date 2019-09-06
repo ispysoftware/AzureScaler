@@ -9,7 +9,7 @@ Create a local.settings.json file containing the following
 <li>SubscriptionID - Your Azure subscription ID</li>
 <li>CosmosThroughputBuffer - How much to add to the detected usage level</li>
 <li>SignalRScaleLimit - 0.9 = If scale is 1000 and usage is 901 it will scale to 2000</li>
-    <li>ScaleEnabled - Set to 0 to just output to the console the actions it would take</li>
+<li>ScaleEnabled - Set to 0 to just output to the console the actions it would take</li>
 </ul>
 
     {
@@ -23,6 +23,8 @@ Create a local.settings.json file containing the following
         "SubscriptionID":"",
         "CosmosThroughputBuffer":200,
         "SignalRScaleLimit": 0.9, 
-        "ScaleEnabled": 1
+        "ScaleEnabled": 1,
+        "CosmosAPIVersion": "2015-04-08",
+        "SignalRAPIVersion": "2018-10-01"
       }
     }

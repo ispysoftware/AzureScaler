@@ -122,7 +122,7 @@ function CheckCosmosUsage
         Write-Host "Checking Cosmos DB " $CosmosDatabaseName
         $databaseResourceName  = $CosmosAccountName + "/sql/" + $CosmosDatabaseName + "/throughput"
         $res = Get-AzResource -ResourceType "Microsoft.DocumentDb/databaseAccounts/apis/databases/settings" `
-            -ApiVersion "2015-04-08" -ResourceGroupName $CosmosResourceGroup `
+            -ApiVersion $env:CosmosAPIVersion -ResourceGroupName $CosmosResourceGroup `
             -Name $databaseResourceName | Select-Object -expand Properties
         $throughput = [int] $res.throughput
         Write-Host "Current Throughput: "$throughput
@@ -132,7 +132,7 @@ function CheckCosmosUsage
         $query = "(name.value eq 'Max RUs Per Second') and timeGrain eq duration'PT5M' and startTime eq $startdate and endTime eq $enddate"
         $encodequery = [uri]::EscapeDataString($query) 
 
-        $url = 'https://management.azure.com/subscriptions/'+$env:SubscriptionID+'/resourceGroups/'+$CosmosResourceGroup+'/providers/Microsoft.DocumentDb/databaseAccounts/'+$CosmosAccountName+'/databases/'+$CosmosDatabaseResourceID+'/metrics?api-version=2015-04-08&$filter=' + $encodequery
+        $url = 'https://management.azure.com/subscriptions/'+$env:SubscriptionID+'/resourceGroups/'+$CosmosResourceGroup+'/providers/Microsoft.DocumentDb/databaseAccounts/'+$CosmosAccountName+'/databases/'+$CosmosDatabaseResourceID+'/metrics?api-version='+$env:CosmosAPIVersion+'&$filter=' + $encodequery
         $headers = @{
             'Host' = 'management.azure.com'
             'Content-Type' = 'application/json';     
@@ -166,7 +166,7 @@ function CheckCosmosUsage
                 
                     $properties = @{"resource"=@{"throughput"=$newmax}}
                     Set-AzResource -ResourceType "Microsoft.DocumentDb/databaseAccounts/apis/databases/settings" `
-                        -ApiVersion "2015-04-08" -ResourceGroupName $CosmosResourceGroup `
+                        -ApiVersion $env:CosmosAPIVersion -ResourceGroupName $CosmosResourceGroup `
                         -Name $databaseResourceName -PropertyObject $properties
                     Write-Host "Done!"
                 }
@@ -186,7 +186,7 @@ function ScaleCosmosDatabases {
     $accs = Get-AzResource -ResourceType Microsoft.DocumentDb/databaseAccounts
     foreach($acc in $accs)  {
         $accName = $acc.Name+'/sql/'
-        $dbs = Get-AzResource -ResourceType Microsoft.DocumentDb/databaseAccounts/apis/databases -ApiVersion "2015-04-08" -ResourceGroupName $acc.ResourceGroupName -Name $accName | Select-Object -expand Properties
+        $dbs = Get-AzResource -ResourceType Microsoft.DocumentDb/databaseAccounts/apis/databases -ApiVersion $env:CosmosAPIVersion -ResourceGroupName $acc.ResourceGroupName -Name $accName | Select-Object -expand Properties
         foreach($db in $dbs){
             CheckCosmosUsage -AuthToken $authToken -CosmosAccountName $acc.Name -CosmosDatabaseName $db.id -CosmosResourceGroup $acc.ResourceGroupName -CosmosDatabaseResourceID $db._rid -CosmosThroughputBuffer $env:CosmosThroughputBuffer    
         }
@@ -194,7 +194,7 @@ function ScaleCosmosDatabases {
 }
 
 function ScaleSignalRServers {
-    $url = 'https://management.azure.com/subscriptions/'+$env:SubscriptionID+'/providers/Microsoft.SignalRService/SignalR?api-version=2018-10-01'
+    $url = 'https://management.azure.com/subscriptions/'+$env:SubscriptionID+'/providers/Microsoft.SignalRService/SignalR?api-version='+$env:SignalRAPIVersion
     $headers = @{
         'Host' = 'management.azure.com'
         'Content-Type' = 'application/json';     
