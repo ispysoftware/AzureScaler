@@ -164,10 +164,10 @@ function CheckCosmosUsage
                 Write-Host "Setting new Max: " $newmax
                 if ([int]$env:ScaleEnabled)  {
                 
-                    #$properties = @{"resource"=@{"throughput"=$newmax}}
-                    #Set-AzResource -ResourceType "Microsoft.DocumentDb/databaseAccounts/apis/databases/settings" `
-                    #    -ApiVersion "2015-04-08" -ResourceGroupName $CosmosResourceGroup `
-                    #-Name $databaseResourceName -PropertyObject $properties
+                    $properties = @{"resource"=@{"throughput"=$newmax}}
+                    Set-AzResource -ResourceType "Microsoft.DocumentDb/databaseAccounts/apis/databases/settings" `
+                        -ApiVersion "2015-04-08" -ResourceGroupName $CosmosResourceGroup `
+                        -Name $databaseResourceName -PropertyObject $properties
                     Write-Host "Done!"
                 }
                 else 
@@ -198,7 +198,7 @@ function ScaleSignalRServers {
     $headers = @{
         'Host' = 'management.azure.com'
         'Content-Type' = 'application/json';     
-        'Authorization' = "Bearer $AuthToken";
+        'Authorization' = "Bearer $authToken";
     }
      
     $ServerList = Invoke-RestMethod -Uri $url -Method GET -Headers $headers
