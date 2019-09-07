@@ -10,7 +10,11 @@ Create a local.settings.json file containing the following
 <li>SubscriptionID - Your Azure subscription ID</li>
 <li>CosmosThroughputBuffer - How much to add to the detected usage level</li>
 <li>SignalRScaleLimit - 0.9 = If scale is 1000 and usage is 901 it will scale to 2000</li>
+<li>EnableSignalRScaleDown - Set to 1 to enable scale down operations as well as up (scaling disconnects all connected clients (!))</li>
 <li>ScaleEnabled - Set to 0 to just output to the console the actions it would take</li>
+<li>WebSiteNotifyURL - Used to sync signalr connection stats to your web server (can be blank)</li>
+<li>WebSiteAuthKey - Used to authenticate signalr connection stats to your web server (anything you like)</li>
+
 </ul>
 
     {
@@ -26,8 +30,11 @@ Create a local.settings.json file containing the following
         "CosmosMin":400,
         "CosmosMax":10000,
         "SignalRScaleLimit": 0.9, 
+        "EnableSignalRScaleDown": 0,
         "ScaleEnabled": 1,
         "CosmosAPIVersion": "2015-04-08",
-        "SignalRAPIVersion": "2018-10-01"
+        "SignalRAPIVersion": "2018-10-01",
+        "WebSiteNotifyURL": "",
+        "WebSiteAuthKey":""
       }
     }

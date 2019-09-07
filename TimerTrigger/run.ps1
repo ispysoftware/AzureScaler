@@ -26,9 +26,22 @@ function CheckSigRService{
     # Only scale if we are on the Standard_S1 plan
     if ($signalRResource.Sku.Name -eq "Standard_S1") {
 
-        # Get metrics for the last 5 minutes
-        $connectionCountMetric = Get-AzMetric -ResourceId $ID -MetricName "ConnectionCount" -TimeGrain 00:05:00 -StartTime (Get-Date).AddMinutes(-5) -AggregationType Maximum -Verbose
+        # Get metrics for the last 30 minutes (to allow scale operations to complete and clients to reconnect)
+        $connectionCountMetric = Get-AzMetric -ResourceId $ID -MetricName "ConnectionCount" -TimeGrain 00:30:00 -StartTime (Get-Date).AddMinutes(-30) -AggregationType Maximum -Verbose
         $maxConnectionCount = $connectionCountMetric.Timeseries.Data[0].Maximum
+
+        if ($env:WebSiteNotifyURL -ne "")  {
+            #update url with connection count
+            $url = $env:WebSiteNotifyURL
+            $headers = @{'Content-Type' = 'application/x-www-form-urlencoded';}
+            $body = @{
+                AuthKey = $env:WebSiteAuthKey
+                Server = $ID
+                Count = $maxConnectionCount
+            }
+         
+            Invoke-RestMethod -Uri $url -Method POST -Headers $headers -Body $body
+        }
 
         # Calculate the target unit count
         $targetUnitCount = 1
@@ -43,19 +56,23 @@ function CheckSigRService{
 
         # See if we need to change the unit count
         if ($targetUnitCount -ne $currentUnitCount) {
-
-            Write-Host "Scaling resource to unit count: " $targetUnitCount
-            if ([int]$env:ScaleEnabled)  {
-                # Change the resource unit count
-                $signalRResource.Sku.Capacity = $targetUnitCount
-                $signalRResource | Set-AzResource -Force
-                Write-Host "Done!"
+            $scale = [int]$env:EnableSignalRScaleDown -or  $targetUnitCount -gt $currentUnitCount
+            if ($scale) {
+                Write-Host "Scaling resource to unit count: " $targetUnitCount
+                if ([int]$env:ScaleEnabled)  {
+                    # Change the resource unit count
+                    $signalRResource.Sku.Capacity = $targetUnitCount
+                    $signalRResource | Set-AzResource -Force
+                    Write-Host "Done!"
+                }
+                else 
+                {
+                    Write-Host "Scaling action is disabled"
+                }
             }
-            else 
-            {
-                Write-Host "Scaling action is disabled"
+            else {
+                Write-Host "Scaling action skipped"
             }
-            
         } else {
 
             Write-Host "Not scaling as resource is already at the optimum unit count: " $currentUnitCount
