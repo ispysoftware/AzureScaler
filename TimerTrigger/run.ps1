@@ -19,6 +19,7 @@ function CheckSigRService{
     $connectionsPerUnit = 1000          # Number of concurent connections you can have per unit
     $unitCounts = 1,2,5,10,20,50,100    # Supported SignalR Unit Counts
     $scaleThreshold = [double]$env:SignalRScaleLimit              # Percentage threshold at which to scale 
+    $signalRSampleMinutes = [int]$env:SignalRSampleMinutes
 
     $signalRResource = Get-AzResource -ResourceId $ID -Verbose
     $currentUnitCount = [int]$signalRResource.Sku.Capacity
@@ -26,8 +27,13 @@ function CheckSigRService{
     # Only scale if we are on the Standard_S1 plan
     if ($signalRResource.Sku.Name -eq "Standard_S1") {
 
-        # Get metrics for the last 30 minutes (to allow scale operations to complete and clients to reconnect)
-        $connectionCountMetric = Get-AzMetric -ResourceId $ID -MetricName "ConnectionCount" -TimeGrain 00:30:00 -StartTime (Get-Date).AddMinutes(-30) -AggregationType Maximum -Verbose
+        # Get metrics for the last n minutes (to allow scale operations to complete and clients to reconnect)
+        $timegrain = '00:'+$signalRSampleMinutes+':00'
+        if ($signalRSampleMinutes -lt 10) {
+            $timegrain = '00:0'+$signalRSampleMinutes+':00'
+        }
+
+        $connectionCountMetric = Get-AzMetric -ResourceId $ID -MetricName "ConnectionCount" -TimeGrain $timegrain -StartTime (Get-Date).AddMinutes(0-$signalRSampleMinutes) -AggregationType Maximum -Verbose
         $maxConnectionCount = $connectionCountMetric.Timeseries.Data[0].Maximum
 
         if ($env:WebSiteNotifyURL -ne "")  {
@@ -53,13 +59,19 @@ function CheckSigRService{
                 Break
             }
         }
+        if ($targetUnitCount -gt $env:SignalRScaleMax)  {
+            $targetUnitCount = $env:SignalRScaleMax
+        }
+        if ($targetUnitCount -lt $env:SignalRScaleMin)  {
+            $targetUnitCount = $env:SignalRScaleMin
+        }
 
         # See if we need to change the unit count
         if ($targetUnitCount -ne $currentUnitCount) {
-            $scale = [int]$env:EnableSignalRScaleDown -or  $targetUnitCount -gt $currentUnitCount
+            $scale = [int]$env:SignalRScaleDownEnabled -or  $targetUnitCount -gt $currentUnitCount
             if ($scale) {
                 Write-Host "Scaling resource to unit count: " $targetUnitCount
-                if ([int]$env:ScaleEnabled)  {
+                if ([int]$env:SignalRScaleEnabled)  {
                     # Change the resource unit count
                     $signalRResource.Sku.Capacity = $targetUnitCount
                     $signalRResource | Set-AzResource -Force
@@ -132,7 +144,9 @@ function CheckCosmosUsage
         [System.String]
         $CosmosDatabaseResourceID,
         [Int]
-        $CosmosThroughputBuffer
+        $CosmosThroughputBuffer,
+        [Int]
+        $CosmosSampleMinutes
     )
     Process
     {
@@ -144,9 +158,11 @@ function CheckCosmosUsage
         $throughput = [int] $res.throughput
         Write-Host "Current Throughput: "$throughput
         
-        $startdate = (Get-Date).AddMinutes(-10).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:00.0000000Z")
+        $startdate = (Get-Date).AddMinutes(0-$CosmosSampleMinutes).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:00.0000000Z")
         $enddate = (Get-Date).ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:00.0000000Z")
-        $query = "(name.value eq 'Max RUs Per Second') and timeGrain eq duration'PT5M' and startTime eq $startdate and endTime eq $enddate"
+
+        $query = "(name.value eq 'Max RUs Per Second') and timeGrain eq duration'PT1M' and startTime eq $startdate and endTime eq $enddate"
+        Write-Host $query
         $encodequery = [uri]::EscapeDataString($query) 
 
         $url = 'https://management.azure.com/subscriptions/'+$env:SubscriptionID+'/resourceGroups/'+$CosmosResourceGroup+'/providers/Microsoft.DocumentDb/databaseAccounts/'+$CosmosAccountName+'/databases/'+$CosmosDatabaseResourceID+'/metrics?api-version='+$env:CosmosAPIVersion+'&$filter=' + $encodequery
@@ -182,7 +198,7 @@ function CheckCosmosUsage
 
             if ($newmax -ne $throughput) {
                 Write-Host "Setting new Max: " $newmax
-                if ([int]$env:ScaleEnabled)  {
+                if ([int]$env:CosmosScaleEnabled)  {
                 
                     $properties = @{"resource"=@{"throughput"=$newmax}}
                     Set-AzResource -ResourceType "Microsoft.DocumentDb/databaseAccounts/apis/databases/settings" `
@@ -208,7 +224,7 @@ function ScaleCosmosDatabases {
         $accName = $acc.Name+'/sql/'
         $dbs = Get-AzResource -ResourceType Microsoft.DocumentDb/databaseAccounts/apis/databases -ApiVersion $env:CosmosAPIVersion -ResourceGroupName $acc.ResourceGroupName -Name $accName | Select-Object -expand Properties
         foreach($db in $dbs){
-            CheckCosmosUsage -AuthToken $authToken -CosmosAccountName $acc.Name -CosmosDatabaseName $db.id -CosmosResourceGroup $acc.ResourceGroupName -CosmosDatabaseResourceID $db._rid -CosmosThroughputBuffer $env:CosmosThroughputBuffer    
+            CheckCosmosUsage -AuthToken $authToken -CosmosAccountName $acc.Name -CosmosDatabaseName $db.id -CosmosResourceGroup $acc.ResourceGroupName -CosmosDatabaseResourceID $db._rid -CosmosThroughputBuffer $env:CosmosThroughputBuffer -CosmosSampleMinutes $env:CosmosSampleMinutes
         }
     }
 }
