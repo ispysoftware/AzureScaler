@@ -204,6 +204,7 @@ function CheckCosmosUsage
                     Set-AzResource -ResourceType "Microsoft.DocumentDb/databaseAccounts/apis/databases/settings" `
                         -ApiVersion $env:CosmosAPIVersion -ResourceGroupName $CosmosResourceGroup `
                         -Name $databaseResourceName -PropertyObject $properties
+			-Force
                     Write-Host "Done!"
                 }
                 else 
