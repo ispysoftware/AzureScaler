@@ -21,7 +21,7 @@ function CheckSigRService{
     $scaleThreshold = [double]$env:SignalRScaleLimit              # Percentage threshold at which to scale 
     $signalRSampleMinutes = [int]$env:SignalRSampleMinutes
 
-    $signalRResource = Get-AzResource -ResourceId $ID -Verbose
+    $signalRResource = Get-AzResource -ResourceId $ID -ApiVersion 2018-10-01 -Verbose
     $currentUnitCount = [int]$signalRResource.Sku.Capacity
     Write-Host "Checking " $ID
     # Only scale if we are on the Standard_S1 plan
@@ -204,6 +204,7 @@ function CheckCosmosUsage
                     Set-AzResource -ResourceType "Microsoft.DocumentDb/databaseAccounts/apis/databases/settings" `
                         -ApiVersion $env:CosmosAPIVersion -ResourceGroupName $CosmosResourceGroup `
                         -Name $databaseResourceName -PropertyObject $properties
+						-Force
 			-Force
                     Write-Host "Done!"
                 }
